@@ -1,6 +1,6 @@
 import scrapy
 import json
-
+import re
 
 class SourcesSpider(scrapy.Spider):
     name = 'sources_spider'
@@ -19,10 +19,16 @@ class SourcesSpider(scrapy.Spider):
             archive = source_unit.xpath(
                 './/div[@class="archive"]/text()[normalize-space()]').get()
 
+            year = re.search(r'\d{4}', name)  # Search for a 4-digit year
+            if year:
+                year = year.group(0)  # Extract the matched year
+            else:
+                year = None  # Handle cases where no year is found
             yield {
                 'id': source_id,
                 'name': name,
-                'archive': archive
+                'archive': archive,
+                'year': year
             }
         # Follow pagination
         next_page_link = response.css('a[title="Neste"]::attr(href)').get()

@@ -1,72 +1,14 @@
 import scrapy
-import re
-import json
-import random
-from folketelling.spiders.personId import PersonIDSpider
-
-import logging
-logging.getLogger('scrapy').setLevel(logging.INFO)
 
 
-class PersonSpider(scrapy.Spider):
-    name = 'folketelling_spider'
+class PersonInfoSpider(scrapy.Spider):
+    name = 'person_info_spider'
 
-    def start_requests(self):
-
-        with open('./folketelling/sources.json', 'r') as f:
-            source_data = json.load(f)
-        spider_instance = PersonSpider()
-        base_url = 'https://www.digitalarkivet.no/census/person/pf010'
-        num_sources_to_process = 2
-        random_sources = random.sample(source_data, num_sources_to_process)
-        print('random_sources: ', random_sources)
-
-        for source in random_sources:
-            # Get source info
-            source_number = source['id']
-            source_year = source['year']
-
-            # call up personIdSpider with source_number and source_year
-            spider_instance.start_sourceIDandYear_requests(
-                source_year, source_number)
-            
-            
-
-    def start_sourceIDandYear_requests(self, year, source_id):
-        print('HERE IN START_SOURCEIDANDYEAR_REQUESTS')
-        try:
-            url = f"https://www.digitalarkivet.no/census/search/{year}/{source_id}?fornavn="
-            print('url is set to...', url)
-            request = scrapy.Request(url=url, callback=self.parse_person_ids)
-            yield request
-
-        except Exception as e:
-            print("Error in start_requests: ", e)
-
-    def parse_person_ids(self, response):
-        print('parsing person_ids')
-        # print("DEBUG: Inside parse_person_ids, response.body:", response.body)  # Add here
-        # print('body', response.body)
-        person_links = response.css('a.block-link[href]')
-        person_ids = []
-        for link in person_links:
-            href = link.attrib['href']
-            if "/person/" in href:
-                person_id = href.split("/person/")[-1]
-                person_ids.append(person_id)
-        yield {'person_ids': person_ids}
-
-    def parsePersons(self, response):
-        print("DEBUG: -- INSIDE parse_person_ids -- GOT ")  # Add this line
-        source = response.meta.get('source_id')
-        year = response.meta.get('year')
-        person_ids = response.meta.get('person_ids')
-        print('source', source, 'year', year, 'personidsgathered', person_ids)
+    def __init__(self, *args, **kwargs):
+        super(PersonInfoSpider, self).__init__(*args, **kwargs)
+        self.accumulated_data = []
 
     def parse(self, response):
-
-        source_info = response.meta['source_info']
-
         try:
             name = response.css(
                 'h1:contains("Person: ")::text').getall()[-1].strip()
@@ -270,7 +212,6 @@ class PersonSpider(scrapy.Spider):
 
         except AttributeError:
             print('No bosted by or land')
-
         yield {
             'name': name,
             'personinHouseholdId': personinHouseholdId,
@@ -302,7 +243,17 @@ class PersonSpider(scrapy.Spider):
             'matr_gnr': matr_gnr,
             'lopenr_bnr': lopenr_bnr,
             'url': response.url,
-            'source_id': source_info['id'],
-            'source_name': source_info['name'],
-            'source_archive': source_info['archive']
+            #'source_id': source_info['id'],
+            #'source_name': source_info['name'],
+            #'source_archive': source_info['archive']
         }
+
+    def closed(self, reason):
+        # This method is called when the spider is closed
+        # Do something with your accumulated data
+        print("Accumulated Data:", self.accumulated_data)
+
+        # Example: Save as JSON
+        import json
+        with open('output.json', 'w') as f:
+            json.dump(self.accumulated_data, f)
