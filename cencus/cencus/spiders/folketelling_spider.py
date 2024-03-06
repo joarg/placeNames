@@ -11,16 +11,25 @@ class folkeTelling(scrapy.Spider):
 
     def start_requests(self):
 
-        with open('sources.json', 'r') as f:
-            source_data = json.load(f)
         base_url = 'https://www.digitalarkivet.no/census/person/pf010'
 
+        with open('sources.json', 'r') as f:
+            source_data = json.load(f)
+
+#divide source_data into 10 chunks of about equal size
+        chunk_size = int(len(source_data)/100)
+        source_data = [source_data[i:i + chunk_size] for i in range(0, len(source_data), chunk_size)]
+        source_data = source_data[0]
+        
+        partToProcess = 0;    
+        
         num_sources_to_process = 3
         random_sources = random.sample(source_data, num_sources_to_process)
         print('random sources' + str(random_sources))
 
 
-        for source in random_sources:
+#        for source in random_sources:
+        for source in source_data[partToProcess]:
             source_number = source['id']
             sourceYear = source['year']
             

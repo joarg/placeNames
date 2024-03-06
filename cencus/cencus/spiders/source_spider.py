@@ -15,7 +15,7 @@ class SourceSpider(scrapy.Spider):
             sources = json.load(f)
             random_sources = random.sample(sources, 2)
 
-        for source in random_sources:
+        for source in sources[0:10]:
             source_id = source['id']
             year = source['year']
             url = f"https://www.digitalarkivet.no/census/search/{year}/{source_id}?fornavn="
