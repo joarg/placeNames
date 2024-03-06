@@ -11,9 +11,9 @@ def run_spiders():
     process = CrawlerProcess(get_project_settings())
     print("CrawlerProcess created")  # Add this line
     process.crawl(SourceSpider)
-    process.join()  # Add this line
-    process.crawl(PersonListSpider)
-    process.crawl(PersonInfoSpider)
+#    process.join()  # Add this line
+#    process.crawl(PersonListSpider)
+#    process.crawl(PersonInfoSpider)
 
     print("First spider crawled")  # Add this line
     process.start()

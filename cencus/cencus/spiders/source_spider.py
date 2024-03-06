@@ -16,7 +16,7 @@ class SourceSpider(scrapy.Spider):
             random_sources = random.sample(sources, 2)
         fromSource = 0
         toSource = 10
-        
+
         for source in sources[fromSource:toSource]:
             source_id = source['id']
             year = source['year']
@@ -33,7 +33,7 @@ class SourceSpider(scrapy.Spider):
             if "/person/" in href:
                 person_id = href.split("/person/")[-1]
                 person_ids.append(person_id)
-        #print(person_ids)
+        # print(person_ids)
 
         # Create requests for PersonInfoSpider
         for person_id in person_ids:
@@ -280,5 +280,6 @@ class SourceSpider(scrapy.Spider):
         self.accumulated_data.append(results)
 
     def closed(self, reason):
-        with open(f'output_{self.fromSource}_{self.toSource}.json', 'w') as f:  # Use 'w' mode for writing
+        # Use 'w' mode for writing
+        with open(f'output_{self.fromSource}_{self.toSource}.json', 'w') as f:
             json.dump(self.accumulated_data, f, ensure_ascii=False)
