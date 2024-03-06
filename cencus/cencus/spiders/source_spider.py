@@ -14,8 +14,10 @@ class SourceSpider(scrapy.Spider):
         with open('data/sources.json', 'r') as f:
             sources = json.load(f)
             random_sources = random.sample(sources, 2)
-
-        for source in sources[0:10]:
+        fromSource = 0
+        toSource = 10
+        
+        for source in sources[fromSource:toSource]:
             source_id = source['id']
             year = source['year']
             url = f"https://www.digitalarkivet.no/census/search/{year}/{source_id}?fornavn="
@@ -278,5 +280,5 @@ class SourceSpider(scrapy.Spider):
         self.accumulated_data.append(results)
 
     def closed(self, reason):
-        with open('output.json', 'w') as f:  # Use 'w' mode for writing
+        with open(f'output_{self.fromSource}_{self.toSource}.json', 'w') as f:  # Use 'w' mode for writing
             json.dump(self.accumulated_data, f, ensure_ascii=False)
