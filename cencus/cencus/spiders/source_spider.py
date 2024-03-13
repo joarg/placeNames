@@ -1,47 +1,83 @@
 import scrapy
 import json
 import random
-
+import os
 
 class SourceSpider(scrapy.Spider):
     name = 'source_spider'
 
     def __init__(self):
         super().__init__()
-        self.accumulated_data = []  # Initialize the list
 
     def start_requests(self):
+        print('start_requests is running')
         with open('data/sources.json', 'r') as f:
             sources = json.load(f)
-            random_sources = random.sample(sources, 2)
-        fromSource = 0
-        toSource = 10
+            # random_sources = random.sample(sources, 2)
+        fromSource = 1
+        toSource = 2
 
         for source in sources[fromSource:toSource]:
             source_id = source['id']
             year = source['year']
-            url = f"https://www.digitalarkivet.no/census/search/{year}/{source_id}?fornavn="
+            url = f"https://www.digitalarkivet.no/source/{source_id}"
             yield scrapy.Request(url, meta={'source_data': {'id': source['id'], 'year': source['year']}},
-                                 callback=self.parse_person_list)
+                                 callback=self.parse_getUrl_from_source)
 
-    def parse_person_list(self, response):
+    def parse_getUrl_from_source(self, response):
+        #new
+        print('parse_getUrl_from_source is running')
+        source_data = response.meta['source_data']
+        search_link = response.css(
+            'a:contains("Søk i kilden")::attr(href)').get()
+        if search_link:
+            search_url = response.urljoin(search_link) + "?fornavn"
+            yield scrapy.Request(
+                search_url,
+                meta={'source_data': source_data},
+                callback=self.parse_person_list,
+                cb_kwargs={'person_ids': []}
+            )
+
+    def parse_person_list(self, response, person_ids=[]):
+        print('parse_person_list is running')
+        print('response meta is ', response.meta['source_data'])
         source_data = response.meta['source_data']
         person_links = response.css('a.block-link[href]')
-        person_ids = []
+        person_ids = person_ids
         for link in person_links:
             href = link.attrib['href']
             if "/person/" in href:
                 person_id = href.split("/person/")[-1]
                 person_ids.append(person_id)
-        # print(person_ids)
 
-        # Create requests for PersonInfoSpider
-        for person_id in person_ids:
+        # Pagination Logic
+        next_page_element = response.css(
+            'span.hidden-xs:contains("Neste")').xpath('..')
+        next_page_link = next_page_element.css('::attr(href)').get()
+
+        if next_page_link:
             yield scrapy.Request(
-                f"https://www.digitalarkivet.no/census/person/{person_id}",
-                meta={'source': source_data, 'person_id': person_id}, callback=self.parse_person_info)
+                response.urljoin(next_page_link),
+                meta=response.meta,  # Pass along the entire meta dictionary
+                callback=self.parse_person_list,  # Call parse_person_list recursively
+                cb_kwargs={'person_ids': person_ids}  # Pass the existing list 
+
+            )
+        else:
+            # No "Next" page found. Proceed to parse_person_info
+            print('No next page found, found number of person_ids: ', len(person_ids))
+            for person_id in person_ids:
+                yield scrapy.Request(
+                    f"https://www.digitalarkivet.no/census/person/{person_id}",
+                    meta={'source': source_data, 'person_id': person_id},
+                    callback=self.parse_person_info
+                )
 
     def parse_person_info(self, response):
+        source_id = response.meta['source']['id']
+        source_year = response.meta['source']['year']
+        print('parse_person_info is running')
         try:
             name = response.css(
                 'h1:contains("Person: ")::text').getall()[-1].strip()
@@ -276,10 +312,26 @@ class SourceSpider(scrapy.Spider):
             'matr_gnr': matr_gnr,
             'lopenr_bnr': lopenr_bnr,
             'url': response.url,
+            'sourceId': source_id,
+            'source_year': source_year
+        
         }
-        self.accumulated_data.append(results)
+        #print('Appending results: ', results)  # Check individual person data
+
+        def save_results(results, source_id):
+            
+            file_name = f"data_output/source_{source_id}.json"
+            if not os.path.exists(file_name):
+                with open(file_name, 'w') as f:
+                    json.dump([], f)
+            with open(file_name, 'r+') as f:
+                data = json.load(f)
+                data.append(results)
+                f.seek(0)
+                json.dump(data, f, ensure_ascii=False)
+                f.truncate()
+
+        save_results(results, source_id)
 
     def closed(self, reason):
-        # Use 'w' mode for writing
-        with open(f'output_{self.fromSource}_{self.toSource}.json', 'w') as f:
-            json.dump(self.accumulated_data, f, ensure_ascii=False)
+        print('Closed spider')

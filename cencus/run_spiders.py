@@ -3,8 +3,8 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
 from cencus.spiders.source_spider import SourceSpider
-from cencus.spiders.person_list_spider import PersonListSpider
-from cencus.spiders.person_info_spider import PersonInfoSpider
+#from cencus.spiders.person_list_spider import PersonListSpider
+#from cencus.spiders.person_info_spider import PersonInfoSpider
 
 def run_spiders():
     print("Starting Crawling Process")  # Add this line
