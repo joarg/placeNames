@@ -14,8 +14,8 @@ class SourceSpider(scrapy.Spider):
         with open('data/sources.json', 'r') as f:
             sources = json.load(f)
             # random_sources = random.sample(sources, 2)
-        fromSource = 1
-        toSource = 2
+        fromSource = 10
+        toSource = 100
 
         for source in sources[fromSource:toSource]:
             source_id = source['id']
