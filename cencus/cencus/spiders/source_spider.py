@@ -15,11 +15,9 @@ class SourceSpider(scrapy.Spider):
             sources = json.load(f)
             
             # random_sources = random.sample(sources, 2)
-        fromSource = 0
-        toSource = 50
+        fromSource = 400
+        toSource = 500
 
-            
-            
         for source in sources[fromSource:toSource]:
             if SourceSpider.SourceIsCompleted(source['id']):
                 print(f"Source {source['id']} is already completed")
