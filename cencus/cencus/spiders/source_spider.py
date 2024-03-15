@@ -13,16 +13,23 @@ class SourceSpider(scrapy.Spider):
         print('start_requests is running')
         with open('data/sources.json', 'r') as f:
             sources = json.load(f)
+            
             # random_sources = random.sample(sources, 2)
-        fromSource = 14
-        toSource = 100
+        fromSource = 0
+        toSource = 50
 
+            
+            
         for source in sources[fromSource:toSource]:
+            if SourceSpider.SourceIsCompleted(source['id']):
+                print(f"Source {source['id']} is already completed")
+                continue
+            
             source_id = source['id']
             year = source['year']
             url = f"https://www.digitalarkivet.no/source/{source_id}"
             yield scrapy.Request(url, meta={'source_data': {'id': source['id'], 'year': source['year']}},
-                                 callback=self.parse_getUrl_from_source)
+                                    callback=self.parse_getUrl_from_source)
 
     def parse_getUrl_from_source(self, response):
         #new
@@ -335,3 +342,14 @@ class SourceSpider(scrapy.Spider):
 
     def closed(self, reason):
         print('Closed spider')
+
+    def SourceIsCompleted(source_id):
+        print('checking ', source_id)
+        completed_sources = []
+        output_folder = 'data_output'
+        for filename in os.listdir(output_folder):
+            if filename.startswith('source_') and filename.endswith('.json'):
+                completed_source_id = filename.split('_')[1].split('.')[0]
+                completed_sources.append(completed_source_id)
+        print(source_id in completed_sources)
+        return source_id in completed_sources
